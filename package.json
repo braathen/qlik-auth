@@ -1,0 +1,27 @@
+{
+  "name": "qlik-auth",
+  "version": "1.0.0",
+  "description": "A package for simplyfing custom authentication with the Qlik Sense and QlikView products",
+  "author": "Rikard Braathen <rikard.braathen@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+  },
+  "engine": "node >= 0.4.0",
+  "keywords": [
+    "qlik",
+    "qlikview",
+    "sense",
+    "ticket",
+    "webticket",
+    "custom",
+    "authentiction"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/braathen/qlik-auth.git"
+  },
+  "homepage": "https://github.com/braathen/qlik-auth",
+  "bugs": {
+    "url": "https://github.com/braathen/qlik-auth/issues"
+  }
+}
