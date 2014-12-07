@@ -16,6 +16,12 @@ module.exports = {
             targetId = queryData.targetId;
         }
 
+        if (undefined == proxyRestUri || undefined == targetId)
+        {
+            res.end("Missing parameters");
+            return;
+        }
+
         if (undefined == certificate)
         {
             certificate = {
@@ -24,9 +30,10 @@ module.exports = {
             }
         }
 
-        if (undefined == proxyRestUri || undefined == targetId)
-        {
-            res.end("Missing parameters");
+        try {
+            var cert = fs.readFileSync(certificate.filename);
+        } catch (err) {
+            res.end("Missing client certificate");
             return;
         }
 
@@ -38,7 +45,7 @@ module.exports = {
             path: url.parse(proxyRestUri).path + '/ticket?xrfkey=' + xrfkey,
             method: 'POST',
             headers: { 'X-Qlik-Xrfkey': xrfkey, 'Content-Type': 'application/json' },
-            pfx: fs.readFileSync(certificate.filename),
+            pfx: cert,
             passphrase: certificate.passphrase,
             rejectUnauthorized: false,
             agent: false
