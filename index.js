@@ -24,6 +24,12 @@ module.exports = {
             }
         }
 
+        if (undefined == proxyRestUri || undefined == targetId)
+        {
+            res.end("Missing parameters");
+            return;
+        }
+
         //Configure parameters for the ticket request
         var xrfkey = this.generateXrfkey();
         var options = {
