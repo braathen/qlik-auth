@@ -5,7 +5,7 @@ var crypto = require('crypto');
 
 module.exports = {
 
-    requestTicket: function(req, res, profile, certificate, proxyRestUri, targetId) {
+    requestTicket: function (req, res, profile, certificate, proxyRestUri, targetId) {
 
         if (undefined == proxyRestUri) {
             var queryData = url.parse(req.url, true).query;
@@ -16,14 +16,12 @@ module.exports = {
             targetId = queryData.targetId;
         }
 
-        if (undefined == proxyRestUri || undefined == targetId)
-        {
+        if (undefined == proxyRestUri || undefined == targetId) {
             res.end("Missing parameters");
             return;
         }
 
-        if (undefined == certificate)
-        {
+        if (undefined == certificate) {
             certificate = {
                 'filename': './client.pfx',
                 'passphrase': ''
@@ -44,7 +42,7 @@ module.exports = {
             port: url.parse(proxyRestUri).port,
             path: url.parse(proxyRestUri).path + '/ticket?xrfkey=' + xrfkey,
             method: 'POST',
-            headers: { 'X-Qlik-Xrfkey': xrfkey, 'Content-Type': 'application/json' },
+            headers: {'X-Qlik-Xrfkey': xrfkey, 'Content-Type': 'application/json'},
             pfx: cert,
             passphrase: certificate.passphrase,
             rejectUnauthorized: false,
@@ -59,22 +57,23 @@ module.exports = {
 
                 //Build redirect including ticket
                 if (ticket.TargetUri.indexOf("?") > 0) {
-                        redirectURI = ticket.TargetUri + '&QlikTicket=' + ticket.Ticket;
-                    } else {
-                        redirectURI = ticket.TargetUri + '?QlikTicket=' + ticket.Ticket;
-                    }
-                
+                    redirectURI = ticket.TargetUri + '&QlikTicket=' + ticket.Ticket;
+                } else {
+                    redirectURI = ticket.TargetUri + '?QlikTicket=' + ticket.Ticket;
+                }
+
                 res.writeHead(302, {"Location": redirectURI});
                 res.end();
             });
         });
 
         //Send JSON request for ticket
-        var jsonrequest = JSON.stringify({ 'UserDirectory': profile.UserDirectory,
-                                           'UserId': profile.UserId,
-                                           'Attributes': profile.Attributes,
-                                           'TargetId': targetId.toString()
-                                       });
+        var jsonrequest = JSON.stringify({
+            'UserDirectory': profile.UserDirectory,
+            'UserId': profile.UserId,
+            'Attributes': profile.Attributes,
+            'TargetId': targetId.toString()
+        });
         ticketreq.write(jsonrequest);
         ticketreq.end();
 
@@ -83,7 +82,7 @@ module.exports = {
         });
     },
 
-    generateXrfkey: function(size, chars) {
+    generateXrfkey: function (size, chars) {
         size = size || 16;
         chars = chars || "abcdefghijklmnopqrstuwxyzABCDEFGHIJKLMNOPQRSTUWXYZ0123456789";
 
@@ -91,7 +90,8 @@ module.exports = {
 
         for (var i = 0; i < size; i++) {
             value[i] = chars[rnd[i] % len]
-        };
+        }
+        ;
 
         return value.join('');
     }
