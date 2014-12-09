@@ -11,7 +11,7 @@ module.exports = {
         targetId = targetId || url.parse(req.url, true).query.targetId;
         certificate = certificate || {'filename': './client.pfx', 'passphrase': ''};
 
-        if (undefined == proxyRestUri || undefined == targetId) {
+        if (!proxyRestUri || !targetId) {
             res.end("Missing parameters");
             return;
         }
@@ -79,8 +79,7 @@ module.exports = {
 
         for (var i = 0; i < size; i++) {
             value[i] = chars[rnd[i] % len]
-        }
-        ;
+        };
 
         return value.join('');
     }
