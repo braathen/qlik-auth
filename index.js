@@ -12,7 +12,7 @@ module.exports = {
         proxyRestUri = proxyRestUri || url.parse(req.url, true).query.proxyRestUri;
         targetId = targetId || url.parse(req.url, true).query.targetId;
 
-        if (!proxyRestUri || !targetId) {
+        if (!proxyRestUri || !targetId || !profile.UserId) {
             res.end("Missing parameters");
             return;
         }
