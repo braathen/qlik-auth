@@ -7,30 +7,18 @@ module.exports = {
 
     requestTicket: function (req, res, profile, certificate, proxyRestUri, targetId) {
 
-        if (undefined == proxyRestUri) {
-            var queryData = url.parse(req.url, true).query;
-            proxyRestUri = queryData.proxyRestUri;
-        }
-        if (undefined == targetId) {
-            var queryData = url.parse(req.url, true).query;
-            targetId = queryData.targetId;
-        }
+        proxyRestUri = proxyRestUri || url.parse(req.url, true).query.proxyRestUri;
+        targetId = targetId || url.parse(req.url, true).query.targetId;
+        certificate = certificate || {'filename': './client.pfx', 'passphrase': ''};
 
         if (undefined == proxyRestUri || undefined == targetId) {
             res.end("Missing parameters");
             return;
         }
 
-        if (undefined == certificate) {
-            certificate = {
-                'filename': './client.pfx',
-                'passphrase': ''
-            }
-        }
-
         try {
             var cert = fs.readFileSync(certificate.filename);
-        } catch (err) {
+        } catch (e) {
             res.end("Missing client certificate");
             return;
         }
@@ -83,6 +71,7 @@ module.exports = {
     },
 
     generateXrfkey: function (size, chars) {
+
         size = size || 16;
         chars = chars || "abcdefghijklmnopqrstuwxyzABCDEFGHIJKLMNOPQRSTUWXYZ0123456789";
 
