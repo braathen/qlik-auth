@@ -7,9 +7,10 @@ module.exports = {
 
     requestTicket: function (req, res, profile, certificate, proxyRestUri, targetId) {
 
+        //Get and verify parameters
+        certificate = certificate || {'filename': './client.pfx', 'passphrase': ''};
         proxyRestUri = proxyRestUri || url.parse(req.url, true).query.proxyRestUri;
         targetId = targetId || url.parse(req.url, true).query.targetId;
-        certificate = certificate || {'filename': './client.pfx', 'passphrase': ''};
 
         if (!proxyRestUri || !targetId) {
             res.end("Missing parameters");
