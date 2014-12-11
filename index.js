@@ -1,7 +1,9 @@
 var url = require('url');
 var fs = require('fs');
+var http = require('http');
 var https = require('https');
 var crypto = require('crypto');
+var util = require('util');
 
 module.exports = {
 
@@ -83,6 +85,55 @@ module.exports = {
         };
 
         return value.join('');
-    }
+    },
 
+    requestWebTicket: function (req, res, profile) {
+
+        var host = profile.Host || "/";
+        var tryUrl = profile.Document ? '/QvAjaxZfc/opendoc.htm?document=' + profile.Document : "/QlikView"
+        var backUrl = profile.BackUrl || "";
+
+        var options = {
+            host: url.parse(host).hostname,
+            port: url.parse(host).port,
+            path: '/QvAJAXZfc/GetWebTicket.aspx',
+            method: 'POST'
+        };
+
+        var groups = "";
+        if (profile.Groups.length > 0) {
+            groups = "<GroupList>";
+            for (var i = profile.Groups.length - 1; i >= 0; i--) {
+                groups += '<string>' + profile.Groups[i] + '</string>';
+            };
+            groups += "</GroupList><GroupsIsNames>true</GroupsIsNames>";
+        }
+
+        var user = profile.UserDirectory + (profile.UserDirectory ? '\\' : '') + profile.UserId;
+
+        var xml = util.format('<Global method="GetWebTicket"><UserId>%s</UserId>%s</Global>', user, groups);
+
+        var ticketreq = http.request(options, function (ticketres) {
+            ticketres.on('data', function (d) {
+                //Parse ticket response
+                var ticket = d.toString().match('<_retval_>(.*)</_retval_>')[1];
+                if (ticket.length == 40) {
+                    var redirectURI = util.format('%s/QvAJAXZfc/Authenticate.aspx?type=html&webticket=%s&try=%s&back=%s', host, ticket, tryUrl, backUrl)
+                    res.writeHead(302, {"Location": redirectURI});
+                    res.end();
+                }
+                else {
+                    res.write(d.toString);
+                    res.end();
+                }
+            });
+        });
+
+        ticketreq.write(xml);
+        ticketreq.end();
+
+        ticketreq.on('error', function (e) {
+            console.error('Error' + e);
+        });
+    }
 };
