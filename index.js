@@ -7,41 +7,45 @@ var util = require('util');
 
 module.exports = {
 
-    requestTicket: function (req, res, profile, certificate, proxyRestUri, targetId) {
+    requestTicket: function (req, res, profile, options) {
+
+        if (!options)
+            var options = {};
 
         //Get and verify parameters
-        certificate = certificate || {'filename': './client.pfx', 'passphrase': ''};
-        proxyRestUri = proxyRestUri || url.parse(req.url, true).query.proxyRestUri;
-        targetId = targetId || url.parse(req.url, true).query.targetId;
+        options.Certificate = options.Certificate || './client.pfx';
+        options.PassPhrase = options.PassPhrase || '';
+        options.ProxyRestUri = options.ProxyRestUri || url.parse(req.url, true).query.proxyRestUri;
+        options.TargetId = options.TargetId || url.parse(req.url, true).query.targetId;
 
-        if (!proxyRestUri || !targetId || !profile.UserId) {
-            res.end("Missing parameters");
+        if (!options.ProxyRestUri || !options.TargetId || !profile.UserId) {
+            res.end('Missing parameters');
             return;
         }
 
         try {
-            var cert = fs.readFileSync(certificate.filename);
+            var cert = fs.readFileSync(options.Certificate);
         } catch (e) {
-            res.end("Missing client certificate");
+            res.end('Missing client certificate');
             return;
         }
 
         //Configure parameters for the ticket request
         var xrfkey = this.generateXrfkey();
-        var options = {
-            host: url.parse(proxyRestUri).hostname,
-            port: url.parse(proxyRestUri).port,
-            path: url.parse(proxyRestUri).path + '/ticket?xrfkey=' + xrfkey,
+        var settings = {
+            host: url.parse(options.ProxyRestUri).hostname,
+            port: url.parse(options.ProxyRestUri).port,
+            path: url.parse(options.ProxyRestUri).path + '/ticket?xrfkey=' + xrfkey,
             method: 'POST',
             headers: {'X-Qlik-Xrfkey': xrfkey, 'Content-Type': 'application/json'},
             pfx: cert,
-            passphrase: certificate.passphrase,
+            passphrase: options.PassPhrase,
             rejectUnauthorized: false,
             agent: false
         };
 
         //Send ticket request
-        var ticketreq = https.request(options, function (ticketres) {
+        var ticketreq = https.request(settings, function (ticketres) {
             ticketres.on('data', function (d) {
                 //Parse ticket response
                 var ticket = JSON.parse(d.toString());
@@ -53,7 +57,7 @@ module.exports = {
                     redirectURI = ticket.TargetUri + '?QlikTicket=' + ticket.Ticket;
                 }
 
-                res.writeHead(302, {"Location": redirectURI});
+                res.writeHead(302, {'Location': redirectURI});
                 res.end();
             });
         });
@@ -63,7 +67,7 @@ module.exports = {
             'UserDirectory': profile.UserDirectory,
             'UserId': profile.UserId,
             'Attributes': profile.Attributes,
-            'TargetId': targetId.toString()
+            'TargetId': options.TargetId.toString()
         });
         ticketreq.write(jsonrequest);
         ticketreq.end();
@@ -76,7 +80,7 @@ module.exports = {
     generateXrfkey: function (size, chars) {
 
         size = size || 16;
-        chars = chars || "abcdefghijklmnopqrstuwxyzABCDEFGHIJKLMNOPQRSTUWXYZ0123456789";
+        chars = chars || 'abcdefghijklmnopqrstuwxyzABCDEFGHIJKLMNOPQRSTUWXYZ0123456789';
 
         var rnd = crypto.randomBytes(size), value = new Array(size), len = chars.length;
 
@@ -87,39 +91,46 @@ module.exports = {
         return value.join('');
     },
 
-    requestWebTicket: function (req, res, profile) {
+    requestWebTicket: function (req, res, profile, options) {
 
-        var host = profile.Host || "/";
-        var tryUrl = profile.Document ? '/QvAjaxZfc/opendoc.htm?document=' + profile.Document : "/QlikView"
-        var backUrl = profile.BackUrl || "";
+        if (!options)
+            var options = {};
 
-        var options = {
-            host: url.parse(host).hostname,
-            port: url.parse(host).port,
+        //Get parameters
+        options.Host = options.Host || 'http://localhost';
+        options.TryUrl = options.TryUrl || '/QlikView'
+        options.BackUrl = options.BackUrl || '';
+        var tryUrl = options.Document ? '/QvAjaxZfc/opendoc.htm?document=' + options.Document : options.TryUrl
+
+        var settings = {
+            host: url.parse(options.Host).hostname,
+            port: url.parse(options.Host).port,
             path: '/QvAJAXZfc/GetWebTicket.aspx',
             method: 'POST'
         };
 
-        var groups = "";
-        if (profile.Groups.length > 0) {
-            groups = "<GroupList>";
+        //Configure groups
+        var groups = '';
+        if (profile.Groups && profile.Groups.length > 0) {
+            groups = '<GroupList>';
             for (var i = profile.Groups.length - 1; i >= 0; i--) {
                 groups += '<string>' + profile.Groups[i] + '</string>';
             };
-            groups += "</GroupList><GroupsIsNames>true</GroupsIsNames>";
+            groups += '</GroupList><GroupsIsNames>true</GroupsIsNames>';
         }
 
         var user = profile.UserDirectory + (profile.UserDirectory ? '\\' : '') + profile.UserId;
 
-        var xml = util.format('<Global method="GetWebTicket"><UserId>%s</UserId>%s</Global>', user, groups);
+        var body = util.format('<Global method="GetWebTicket"><UserId>%s</UserId>%s</Global>', user, groups);
 
-        var ticketreq = http.request(options, function (ticketres) {
+        //Send ticket request
+        var ticketreq = http.request(settings, function (ticketres) {
             ticketres.on('data', function (d) {
                 //Parse ticket response
                 var ticket = d.toString().match('<_retval_>(.*)</_retval_>')[1];
                 if (ticket.length == 40) {
-                    var redirectURI = util.format('%s/QvAJAXZfc/Authenticate.aspx?type=html&webticket=%s&try=%s&back=%s', host, ticket, tryUrl, backUrl)
-                    res.writeHead(302, {"Location": redirectURI});
+                    var redirectURI = util.format('%s/QvAJAXZfc/Authenticate.aspx?type=html&webticket=%s&try=%s&back=%s', options.Host, ticket, tryUrl, options.BackUrl)
+                    res.writeHead(302, {'Location': redirectURI});
                     res.end();
                 }
                 else {
@@ -129,7 +140,7 @@ module.exports = {
             });
         });
 
-        ticketreq.write(xml);
+        ticketreq.write(body);
         ticketreq.end();
 
         ticketreq.on('error', function (e) {
