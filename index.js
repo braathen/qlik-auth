@@ -7,6 +7,17 @@ var util = require('util');
 
 module.exports = {
 
+    init: function (req, res) {
+
+        //Store targetId and proxyRestUri in a global object
+        if (url.parse(req.url, true).query.targetId != undefined) {
+            global.qlikAuthSession = {
+                "targetId": url.parse(req.url, true).query.targetId,
+                "proxyRestUri": url.parse(req.url, true).query.proxyRestUri
+            };
+        }
+    },
+
     requestTicket: function (req, res, profile, options) {
 
         if (!options)
@@ -17,6 +28,11 @@ module.exports = {
         options.PassPhrase = options.PassPhrase || '';
         options.ProxyRestUri = options.ProxyRestUri || url.parse(req.url, true).query.proxyRestUri;
         options.TargetId = options.TargetId || url.parse(req.url, true).query.targetId;
+
+        if (global.qlikAuthSession) {
+            options.ProxyRestUri = global.qlikAuthSession.proxyRestUri;
+            options.TargetId = global.qlikAuthSession.targetId;
+        }
 
         if (!options.ProxyRestUri || !options.TargetId || !profile.UserId) {
             res.end('Missing parameters');
