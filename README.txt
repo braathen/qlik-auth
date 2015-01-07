@@ -89,6 +89,10 @@ ADVANCED USAGE
        'TargetId': session.targetId
      }
 
+  Optionally (or actually preferred method) could be to use the builtin
+  init(req, res) function on your index page. This will attempt to save the
+  parameters which the requestTicket function will later automatically pick up.
+
 SETUP FOR QLIKVIEW
 
   QlikView would need to be configured for using webtickets, this includes

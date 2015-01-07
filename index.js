@@ -82,7 +82,7 @@ module.exports = {
         var jsonrequest = JSON.stringify({
             'UserDirectory': profile.UserDirectory,
             'UserId': profile.UserId,
-            'Attributes': profile.Attributes,
+            'Attributes': profile.Attributes || [],
             'TargetId': options.TargetId.toString()
         });
         ticketreq.write(jsonrequest);
