@@ -139,18 +139,23 @@ module.exports = {
 
         var body = util.format('<Global method="GetWebTicket"><UserId>%s</UserId>%s</Global>', user, groups);
 
-        //Send ticket request
+        //Send webticket request
         var ticketreq = http.request(settings, function (ticketres) {
             ticketres.on('data', function (d) {
-                //Parse ticket response
-                var ticket = d.toString().match('<_retval_>(.*)</_retval_>')[1];
-                if (ticket.length == 40) {
-                    var redirectURI = util.format('%s/QvAJAXZfc/Authenticate.aspx?type=html&webticket=%s&try=%s&back=%s', options.Host, ticket, tryUrl, options.BackUrl)
-                    res.writeHead(302, {'Location': redirectURI});
-                    res.end();
+                try {
+                    var ticket = d.toString().match('<_retval_>(.*)</_retval_>')[1];
+                    if (ticket.length == 40) {
+                        var redirectURI = util.format('%s/QvAJAXZfc/Authenticate.aspx?type=html&webticket=%s&try=%s&back=%s', options.Host, ticket, tryUrl, options.BackUrl)
+                        res.writeHead(302, {'Location': redirectURI});
+                        res.end();
+                    }
+                    else {
+                        res.write(d.toString);
+                        res.end();
+                    }
                 }
-                else {
-                    res.write(d.toString);
+                catch (e) {
+                    res.write("Error retrieving webticket");
                     res.end();
                 }
             });
