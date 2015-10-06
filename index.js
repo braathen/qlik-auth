@@ -5,10 +5,6 @@ var https = require('https');
 var crypto = require('crypto');
 var util = require('util');
 
-function getFileRealPath(s){
-    try {return fs.realpathSync(s);} catch(e){return false;}
-}
-
 module.exports = {
 
     init: function (req, res) {
@@ -29,8 +25,7 @@ module.exports = {
 
         //Get and verify parameters
         options.Certificate = options.Certificate || './client.pfx';
-        options.CertificateKey = options.CertificateKey || './client_key.pem';
-        options.PassPhrase = options.PassPhrase || null;
+        options.PassPhrase = options.PassPhrase || '';
         options.ProxyRestUri = options.ProxyRestUri || url.parse(req.url, true).query.proxyRestUri;
         options.TargetId = options.TargetId || url.parse(req.url, true).query.targetId;
 
@@ -44,6 +39,13 @@ module.exports = {
             return;
         }
 
+        try {
+            var cert = fs.readFileSync(options.Certificate);
+        } catch (e) {
+            res.end('Missing client certificate');
+            return;
+        }
+
         //Configure parameters for the ticket request
         var xrfkey = this.generateXrfkey();
         var settings = {
@@ -52,36 +54,11 @@ module.exports = {
             path: url.parse(options.ProxyRestUri).path + '/ticket?xrfkey=' + xrfkey,
             method: 'POST',
             headers: {'X-Qlik-Xrfkey': xrfkey, 'Content-Type': 'application/json'},
+            pfx: cert,
             passphrase: options.PassPhrase,
             rejectUnauthorized: false,
             agent: false
         };
-
-		//Try client.pfx and client.pem as defaults
-		var cert = getFileRealPath(options.Certificate)
-		var certKey = false;
-
-		if (!cert)
-			cert = getFileRealPath("./client.pem")
-		if (cert && cert.indexOf(".pem")>0)
-			certKey = getFileRealPath(options.CertificateKey)
-		if (!cert || cert && cert.indexOf(".pem")>0 && !certKey) {
-		    res.end('Missing client certificate or key');
-		    return;
-		}
-
-		//Read certificates
-        try {
-	        if(cert.indexOf(".pem")>0) {
-	        	settings.cert = fs.readFileSync(cert);
-	        	settings.key = fs.readFileSync(certKey);
-	        } else {
-	        	settings.pfx = fs.readFileSync(cert);
-	        }
-        } catch (e) {
-            res.end('Error reading client certificate or key');
-            return;
-        }
 
         //Send ticket request
         var ticketreq = https.request(settings, function (ticketres) {
@@ -112,7 +89,7 @@ module.exports = {
         ticketreq.end();
 
         ticketreq.on('error', function (e) {
-            res.end(e);
+            console.error('Error' + e);
         });
     },
 
@@ -135,7 +112,6 @@ module.exports = {
 
         //Get and verify parameters
         options.Certificate = options.Certificate || './client.pfx';
-        options.CertificateKey = options.CertificateKey || './client_key.pem';
         options.PassPhrase = options.PassPhrase || '';
         options.ProxyRestUri = options.ProxyRestUri || url.parse(req.url, true).query.proxyRestUri;
         options.TargetId = options.TargetId || url.parse(req.url, true).query.targetId;
@@ -150,6 +126,13 @@ module.exports = {
             return;
         }
 
+        try {
+            var cert = fs.readFileSync(options.Certificate);
+        } catch (e) {
+            res.end('Missing client certificate');
+            return;
+        }
+
         //Configure parameters for the session request
         var xrfkey = this.generateXrfkey();
         var settings = {
@@ -158,36 +141,11 @@ module.exports = {
             path: url.parse(options.ProxyRestUri).path + '/session?xrfkey=' + xrfkey,
             method: method,
             headers: {'X-Qlik-Xrfkey': xrfkey, 'Content-Type': 'application/json'},
+            pfx: cert,
             passphrase: options.PassPhrase,
             rejectUnauthorized: false,
             agent: false
         };
-
-		//Try client.pfx and client.pem as defaults
-		var cert = getFileRealPath(options.Certificate)
-		var certKey = false;
-
-		if (!cert)
-			cert = getFileRealPath("./client.pem")
-		if (cert && cert.indexOf(".pem"))
-			certKey = getFileRealPath(options.CertificateKey)
-		if (!cert || cert && cert.indexOf(".pem")>0 && !certKey) {
-		    console.log('Missing client certificate or key');
-		    return;
-		}
-
-		//Read certificates
-        try {
-	        if(cert.indexOf(".pem")) {
-	        	settings.cert = fs.readFileSync(options.Certificate);
-	        	settings.key = fs.readFileSync(options.CertificateKey);
-	        } else {
-	        	settings.pfx = fs.readFileSync(options.Certificate);
-	        }
-        } catch (e) {
-            res.end('Error reading client certificate or key');
-            return;
-        }
 
         //Send session request
         var ticketreq = https.request(settings, function (ticketres) {
@@ -245,8 +203,6 @@ module.exports = {
         options.Host = options.Host || 'http://localhost';
         options.TryUrl = options.TryUrl || '/QlikView'
         options.BackUrl = options.BackUrl || '';
-        options.RedirectUrl = options.RedirectUrl || options.Host;
- 
         var tryUrl = options.Document ? '/QvAjaxZfc/opendoc.htm?document=' + options.Document : options.TryUrl
 
         var settings = {
@@ -276,7 +232,7 @@ module.exports = {
                 try {
                     var ticket = d.toString().match('<_retval_>(.*)</_retval_>')[1];
                     if (ticket.length == 40) {
-                        var redirectURI = util.format('%s/QvAJAXZfc/Authenticate.aspx?type=html&webticket=%s&try=%s&back=%s', options.RedirectUrl, ticket, tryUrl, options.BackUrl)
+                        var redirectURI = util.format('%s/QvAJAXZfc/Authenticate.aspx?type=html&webticket=%s&try=%s&back=%s', options.Host, ticket, tryUrl, options.BackUrl)
                         res.writeHead(302, {'Location': redirectURI});
                         res.end();
                     }
