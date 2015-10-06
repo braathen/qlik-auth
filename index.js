@@ -93,6 +93,93 @@ module.exports = {
         });
     },
 
+    addSession: function (req, res, profile, options) {
+        sessionHelper(req, res, profile, options, 'POST');
+    },
+
+    getSession: function (req, res, profile, options) {
+        sessionHelper(req, res, profile, options, 'GET');
+    },
+
+    deleteSession: function (req, res, profile, options) {
+        sessionHelper(req, res, profile, options, 'DELETE');
+    },
+
+    sessionHelper: function (req, res, profile, options, method) {
+
+        if (!options)
+            var options = {};
+
+        //Get and verify parameters
+        options.Certificate = options.Certificate || './client.pfx';
+        options.PassPhrase = options.PassPhrase || '';
+        options.ProxyRestUri = options.ProxyRestUri || url.parse(req.url, true).query.proxyRestUri;
+        options.TargetId = options.TargetId || url.parse(req.url, true).query.targetId;
+
+        if (global.qlikAuthSession) {
+            options.ProxyRestUri = global.qlikAuthSession.proxyRestUri;
+            options.TargetId = global.qlikAuthSession.targetId;
+        }
+
+        if (!options.ProxyRestUri || !options.TargetId || !profile.UserId) {
+            res.end('Missing parameters');
+            return;
+        }
+
+        try {
+            var cert = fs.readFileSync(options.Certificate);
+        } catch (e) {
+            res.end('Missing client certificate');
+            return;
+        }
+
+        //Configure parameters for the session request
+        var xrfkey = this.generateXrfkey();
+        var settings = {
+            host: url.parse(options.ProxyRestUri).hostname,
+            port: url.parse(options.ProxyRestUri).port,
+            path: url.parse(options.ProxyRestUri).path + '/session?xrfkey=' + xrfkey,
+            method: method,
+            headers: {'X-Qlik-Xrfkey': xrfkey, 'Content-Type': 'application/json'},
+            pfx: cert,
+            passphrase: options.PassPhrase,
+            rejectUnauthorized: false,
+            agent: false
+        };
+
+        //Send session request
+        var ticketreq = https.request(settings, function (ticketres) {
+            ticketres.on('data', function (d) {
+                //Parse session response
+                var ticket = JSON.parse(d.toString());
+
+                // //Build redirect including ticket
+                // if (ticket.TargetUri.indexOf("?") > 0) {
+                //     redirectURI = ticket.TargetUri + '&QlikTicket=' + ticket.Ticket;
+                // } else {
+                //     redirectURI = ticket.TargetUri + '?QlikTicket=' + ticket.Ticket;
+                // }
+
+                // res.writeHead(302, {'Location': redirectURI});
+                // res.end();
+            });
+        });
+
+        //Send JSON request for ticket
+        var jsonrequest = JSON.stringify({
+            'UserDirectory': profile.UserDirectory,
+            'UserId': profile.UserId,
+            'Attributes': profile.Attributes || [],
+            'TargetId': options.TargetId.toString()
+        });
+        ticketreq.write(jsonrequest);
+        ticketreq.end();
+
+        ticketreq.on('error', function (e) {
+            console.error('Error' + e);
+        });
+    },
+
     generateXrfkey: function (size, chars) {
 
         size = size || 16;
