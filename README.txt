@@ -29,7 +29,7 @@ EXAMPLE
       var profile = {
         'UserDirectory': 'QLIK', 
         'UserId': 'rikard',
-        'Attributes': []
+        'Attributes': [{"Group": "ExampleGroup"}]
       }
 
       //Make call for ticket request
@@ -48,9 +48,14 @@ SETUP FOR QLIK SENSE
    listens on port 1337. This is the server and port you need to map in the
    virtual proxy configuration.
 
- - Export the client/server certificates from QMC and copy them to the same
-   directory as your script. If it's necessary to provide a password, see the
-   Advanced section below.
+ - On Windows the module will attempt to use the QlikClient certificate in
+   the Windows Certificate Store. If no certificate is not found it will
+   then look for client.pfx and finally client.pem/client_key.pem in the
+   current path.
+
+ - Export the client certificates including the private key from QMC and copy
+   it to the same directory as your script. If it's necessary to provide a
+   password, see the Advanced section below.
 
 ADVANCED USAGE
 

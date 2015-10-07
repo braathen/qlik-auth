@@ -1,13 +1,16 @@
+var os = require("os");
 var url = require('url');
 var fs = require('fs');
 var http = require('http');
 var https = require('https');
 var crypto = require('crypto');
 var util = require('util');
+var edge = require('edge');
 
 function getFileRealPath(s){
     try {return fs.realpathSync(s);} catch(e){return false;}
 }
+
 
 module.exports = {
 
@@ -30,7 +33,7 @@ module.exports = {
         //Get and verify parameters
         options.Certificate = options.Certificate || './client.pfx';
         options.CertificateKey = options.CertificateKey || './client_key.pem';
-        options.PassPhrase = options.PassPhrase || null;
+        options.PassPhrase = options.PassPhrase || '';
         options.ProxyRestUri = options.ProxyRestUri || url.parse(req.url, true).query.proxyRestUri;
         options.TargetId = options.TargetId || url.parse(req.url, true).query.targetId;
 
@@ -57,30 +60,64 @@ module.exports = {
             agent: false
         };
 
-		//Try client.pfx and client.pem as defaults
-		var cert = getFileRealPath(options.Certificate)
-		var certKey = false;
+        //First try Windows certificate store for local client cert
+        if (os.platform() == "win32") {
+            var exportCertificate = edge.func(function () {/*
 
-		if (!cert)
-			cert = getFileRealPath("./client.pem")
-		if (cert && cert.indexOf(".pem")>0)
-			certKey = getFileRealPath(options.CertificateKey)
-		if (!cert || cert && cert.indexOf(".pem")>0 && !certKey) {
-		    res.end('Missing client certificate or key');
-		    return;
-		}
+                using System;
+                using System.Threading.Tasks;
+                using System.Linq;
+                using System.Security.Cryptography.X509Certificates;
+             
+                public class Startup
+                {
+                    public async Task<object> Invoke(dynamic input)
+                    {
+                        X509Store store = new X509Store(StoreName.My, StoreLocation.CurrentUser);
+                        store.Open(OpenFlags.ReadOnly);
+                        var certificate_ = store.Certificates.Cast<X509Certificate2>().FirstOrDefault(c => c.FriendlyName == "QlikClient");
+                        store.Close();
+                        return certificate_ != null ? Convert.ToBase64String(certificate_.Export(X509ContentType.Pfx, "jfB0ndtJ2yoqrqTzPwYi")) : null;
+                    }
+                }
+            */});
 
-		//Read certificates
-        try {
-	        if(cert.indexOf(".pem")>0) {
-	        	settings.cert = fs.readFileSync(cert);
-	        	settings.key = fs.readFileSync(certKey);
-	        } else {
-	        	settings.pfx = fs.readFileSync(cert);
-	        }
-        } catch (e) {
-            res.end('Error reading client certificate or key');
-            return;
+            exportCertificate(null, function (error, result) {
+                if (error) {res.send(error); return};
+                if (result != null) {
+                    settings.pfx = new Buffer(result, 'base64');;
+                    settings.passphrase = "jfB0ndtJ2yoqrqTzPwYi";
+                }
+            });
+        }
+
+        if (settings.pfx == undefined) {
+            //Try client.pfx and client.pem as defaults
+            var cert = getFileRealPath(options.Certificate)
+            var certKey = false;
+
+            if (!cert)
+                cert = getFileRealPath("./client.pem")
+            if (cert && cert.indexOf(".pem")>0)
+                certKey = getFileRealPath(options.CertificateKey)
+            if (!cert || cert && cert.indexOf(".pem")>0 && !certKey) {
+                res.end('Missing client certificate or key');
+                return;
+            }
+
+            //Read certificates
+            try {
+                if(cert.indexOf(".pem")>0) {
+                    settings.cert = fs.readFileSync(cert);
+                    settings.key = fs.readFileSync(certKey);
+                } else {
+                    settings.pfx = fs.readFileSync(cert);
+                }
+            } catch (e) {
+                res.end('Error reading client certificate or key');
+                return;
+            }
+
         }
 
         //Send ticket request
@@ -112,7 +149,7 @@ module.exports = {
         ticketreq.end();
 
         ticketreq.on('error', function (e) {
-            res.end(e);
+            res.end(e.toString());
         });
     },
 
@@ -163,27 +200,27 @@ module.exports = {
             agent: false
         };
 
-		//Try client.pfx and client.pem as defaults
-		var cert = getFileRealPath(options.Certificate)
-		var certKey = false;
+        //Try client.pfx and client.pem as defaults
+        var cert = getFileRealPath(options.Certificate)
+        var certKey = false;
 
-		if (!cert)
-			cert = getFileRealPath("./client.pem")
-		if (cert && cert.indexOf(".pem"))
-			certKey = getFileRealPath(options.CertificateKey)
-		if (!cert || cert && cert.indexOf(".pem")>0 && !certKey) {
-		    console.log('Missing client certificate or key');
-		    return;
-		}
+        if (!cert)
+            cert = getFileRealPath("./client.pem")
+        if (cert && cert.indexOf(".pem"))
+            certKey = getFileRealPath(options.CertificateKey)
+        if (!cert || cert && cert.indexOf(".pem")>0 && !certKey) {
+            console.log('Missing client certificate or key');
+            return;
+        }
 
-		//Read certificates
+        //Read certificates
         try {
-	        if(cert.indexOf(".pem")) {
-	        	settings.cert = fs.readFileSync(options.Certificate);
-	        	settings.key = fs.readFileSync(options.CertificateKey);
-	        } else {
-	        	settings.pfx = fs.readFileSync(options.Certificate);
-	        }
+            if(cert.indexOf(".pem")) {
+                settings.cert = fs.readFileSync(options.Certificate);
+                settings.key = fs.readFileSync(options.CertificateKey);
+            } else {
+                settings.pfx = fs.readFileSync(options.Certificate);
+            }
         } catch (e) {
             res.end('Error reading client certificate or key');
             return;
@@ -205,6 +242,8 @@ module.exports = {
                 // res.writeHead(302, {'Location': redirectURI});
                 // res.end();
             });
+            console.log(ticketreq);
+            console.log(settings);
         });
 
         //Send JSON request for ticket
@@ -300,3 +339,4 @@ module.exports = {
         });
     }
 };
+
