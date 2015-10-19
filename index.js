@@ -11,7 +11,6 @@ function getFileRealPath(s){
     try {return fs.realpathSync(s);} catch(e){return false;}
 }
 
-
 module.exports = {
 
     init: function (req, res) {
@@ -63,7 +62,6 @@ module.exports = {
         //First try Windows certificate store for local client cert
         if (os.platform() == "win32") {
             var exportCertificate = edge.func(function () {/*
-
                 using System;
                 using System.Threading.Tasks;
                 using System.Linq;
@@ -117,7 +115,6 @@ module.exports = {
                 res.end('Error reading client certificate or key');
                 return;
             }
-
         }
 
         //Send ticket request

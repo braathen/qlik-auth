@@ -29,7 +29,7 @@ EXAMPLE
       var profile = {
         'UserDirectory': 'QLIK', 
         'UserId': 'rikard',
-        'Attributes': [{"Group": "ExampleGroup"}]
+        'Attributes': [{'Group': 'ExampleGroup'}]
       }
 
       //Make call for ticket request
