@@ -7,8 +7,12 @@ var crypto = require('crypto');
 var util = require('util');
 var edge = require('edge');
 
-function getFileRealPath(s){
-    try {return fs.realpathSync(s);} catch(e){return false;}
+function getFileRealPath(s) {
+    try {
+        return fs.realpathSync(s);
+    } catch (e) {
+        return false;
+    }
 }
 
 module.exports = {
@@ -21,6 +25,10 @@ module.exports = {
                 "targetId": url.parse(req.url, true).query.targetId,
                 "proxyRestUri": url.parse(req.url, true).query.proxyRestUri
             };
+            //cut last slash if there is one
+            if (global.qlikAuthSession.proxyRestUri.substr(-1) === '/') {
+                global.qlikAuthSession.proxyRestUri = global.qlikAuthSession.proxyRestUri.substr(0, global.qlikAuthSession.proxyRestUri.length - 1);
+            }
         }
     },
 
@@ -53,7 +61,10 @@ module.exports = {
             port: url.parse(options.ProxyRestUri).port,
             path: url.parse(options.ProxyRestUri).path + '/ticket?xrfkey=' + xrfkey,
             method: 'POST',
-            headers: {'X-Qlik-Xrfkey': xrfkey, 'Content-Type': 'application/json'},
+            headers: {
+                'X-Qlik-Xrfkey': xrfkey,
+                'Content-Type': 'application/json'
+            },
             passphrase: options.PassPhrase,
             rejectUnauthorized: false,
             agent: false
@@ -61,27 +72,32 @@ module.exports = {
 
         //First try Windows certificate store for local client cert
         if (os.platform() == "win32") {
-            var exportCertificate = edge.func(function () {/*
-                using System;
-                using System.Threading.Tasks;
-                using System.Linq;
-                using System.Security.Cryptography.X509Certificates;
-             
-                public class Startup
-                {
-                    public async Task<object> Invoke(dynamic input)
-                    {
-                        X509Store store = new X509Store(StoreName.My, StoreLocation.CurrentUser);
-                        store.Open(OpenFlags.ReadOnly);
-                        var certificate_ = store.Certificates.Cast<X509Certificate2>().FirstOrDefault(c => c.FriendlyName == "QlikClient");
-                        store.Close();
-                        return certificate_ != null ? Convert.ToBase64String(certificate_.Export(X509ContentType.Pfx, "jfB0ndtJ2yoqrqTzPwYi")) : null;
-                    }
-                }
-            */});
+            var exportCertificate = edge.func(function () {
+                /*
+                                using System;
+                                using System.Threading.Tasks;
+                                using System.Linq;
+                                using System.Security.Cryptography.X509Certificates;
+                             
+                                public class Startup
+                                {
+                                    public async Task<object> Invoke(dynamic input)
+                                    {
+                                        X509Store store = new X509Store(StoreName.My, StoreLocation.CurrentUser);
+                                        store.Open(OpenFlags.ReadOnly);
+                                        var certificate_ = store.Certificates.Cast<X509Certificate2>().FirstOrDefault(c => c.FriendlyName == "QlikClient");
+                                        store.Close();
+                                        return certificate_ != null ? Convert.ToBase64String(certificate_.Export(X509ContentType.Pfx, "jfB0ndtJ2yoqrqTzPwYi")) : null;
+                                    }
+                                }
+                            */
+            });
 
             exportCertificate(null, function (error, result) {
-                if (error) {res.send(error); return};
+                if (error) {
+                    res.send(error);
+                    return
+                };
                 if (result != null) {
                     settings.pfx = new Buffer(result, 'base64');;
                     settings.passphrase = "jfB0ndtJ2yoqrqTzPwYi";
@@ -96,16 +112,16 @@ module.exports = {
 
             if (!cert)
                 cert = getFileRealPath("./client.pem")
-            if (cert && cert.indexOf(".pem")>0)
+            if (cert && cert.indexOf(".pem") > 0)
                 certKey = getFileRealPath(options.CertificateKey)
-            if (!cert || cert && cert.indexOf(".pem")>0 && !certKey) {
+            if (!cert || cert && cert.indexOf(".pem") > 0 && !certKey) {
                 res.end('Missing client certificate or key');
                 return;
             }
 
             //Read certificates
             try {
-                if(cert.indexOf(".pem")>0) {
+                if (cert.indexOf(".pem") > 0) {
                     settings.cert = fs.readFileSync(cert);
                     settings.key = fs.readFileSync(certKey);
                 } else {
@@ -130,7 +146,9 @@ module.exports = {
                     redirectURI = ticket.TargetUri + '?QlikTicket=' + ticket.Ticket;
                 }
 
-                res.writeHead(302, {'Location': redirectURI});
+                res.writeHead(302, {
+                    'Location': redirectURI
+                });
                 res.end();
             });
         });
@@ -191,7 +209,10 @@ module.exports = {
             port: url.parse(options.ProxyRestUri).port,
             path: url.parse(options.ProxyRestUri).path + '/session?xrfkey=' + xrfkey,
             method: method,
-            headers: {'X-Qlik-Xrfkey': xrfkey, 'Content-Type': 'application/json'},
+            headers: {
+                'X-Qlik-Xrfkey': xrfkey,
+                'Content-Type': 'application/json'
+            },
             passphrase: options.PassPhrase,
             rejectUnauthorized: false,
             agent: false
@@ -203,16 +224,16 @@ module.exports = {
 
         if (!cert)
             cert = getFileRealPath("./client.pem")
-        if (cert && cert.indexOf(".pem"))
+        if (cert && cert.indexOf(".pem") > 0)
             certKey = getFileRealPath(options.CertificateKey)
-        if (!cert || cert && cert.indexOf(".pem")>0 && !certKey) {
+        if (!cert || cert && cert.indexOf(".pem") > 0 && !certKey) {
             console.log('Missing client certificate or key');
             return;
         }
 
         //Read certificates
         try {
-            if(cert.indexOf(".pem")) {
+            if (cert.indexOf(".pem") > 0) {
                 settings.cert = fs.readFileSync(options.Certificate);
                 settings.key = fs.readFileSync(options.CertificateKey);
             } else {
@@ -263,7 +284,9 @@ module.exports = {
         size = size || 16;
         chars = chars || 'abcdefghijklmnopqrstuwxyzABCDEFGHIJKLMNOPQRSTUWXYZ0123456789';
 
-        var rnd = crypto.randomBytes(size), value = new Array(size), len = chars.length;
+        var rnd = crypto.randomBytes(size),
+            value = new Array(size),
+            len = chars.length;
 
         for (var i = 0; i < size; i++) {
             value[i] = chars[rnd[i] % len]
@@ -282,7 +305,7 @@ module.exports = {
         options.TryUrl = options.TryUrl || '/QlikView'
         options.BackUrl = options.BackUrl || '';
         options.RedirectUrl = options.RedirectUrl || options.Host;
- 
+
         var tryUrl = options.Document ? '/QvAjaxZfc/opendoc.htm?document=' + options.Document : options.TryUrl
 
         var settings = {
@@ -313,15 +336,15 @@ module.exports = {
                     var ticket = d.toString().match('<_retval_>(.*)</_retval_>')[1];
                     if (ticket.length == 40) {
                         var redirectURI = util.format('%s/QvAJAXZfc/Authenticate.aspx?type=html&webticket=%s&try=%s&back=%s', options.RedirectUrl, ticket, tryUrl, options.BackUrl)
-                        res.writeHead(302, {'Location': redirectURI});
+                        res.writeHead(302, {
+                            'Location': redirectURI
+                        });
                         res.end();
-                    }
-                    else {
+                    } else {
                         res.write(d.toString);
                         res.end();
                     }
-                }
-                catch (e) {
+                } catch (e) {
                     res.write("Error retrieving webticket");
                     res.end();
                 }
@@ -336,4 +359,3 @@ module.exports = {
         });
     }
 };
-
