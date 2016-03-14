@@ -1,4 +1,5 @@
 var url = require('url');
+var path = require('path');
 var fs = require('fs');
 var http = require('http');
 var https = require('https');
@@ -98,7 +99,7 @@ module.exports = {
         var settings = {
             host: url.parse(options.ProxyRestUri).hostname,
             port: url.parse(options.ProxyRestUri).port,
-            path: url.parse(options.ProxyRestUri).path + '/ticket?xrfkey=' + xrfkey,
+            path: path.join(url.parse(options.ProxyRestUri).path, 'ticket?xrfkey=' + xrfkey),
             method: 'POST',
             headers: {'X-Qlik-Xrfkey': xrfkey, 'Content-Type': 'application/json'},
             passphrase: options.PassPhrase,
@@ -143,50 +144,59 @@ module.exports = {
         });
     },
 
-    // ==========================================================================
-    // NOTE: The session stuff is a work in progress.... and not really finished.
-    // ==========================================================================
+    //Note: most session stuff is experimental, uncomplete and not tested properly...
 
     addSession: function (req, res, profile, options) {
-        sessionHelper(req, res, profile, options, 'POST');
+        this.sessionHelper(req, res, profile, options, 'POST');
     },
 
+    //Not finished...
     getSession: function (req, res, profile, options) {
-        sessionHelper(req, res, profile, options, 'GET');
+        this.sessionHelper(req, res, profile, options, 'GET');
     },
 
+    //Not finished...
     deleteSession: function (req, res, profile, options) {
-        sessionHelper(req, res, profile, options, 'DELETE');
+        this.sessionHelper(req, res, profile, options, 'DELETE');
+    },
+
+    getSessionId: function (req) {
+        var sessionid = req.url.substring(req.url.lastIndexOf('/') + 1, req.url.indexOf('?'));
+        return sessionid != 'session' ? sessionid : null;
     },
 
     sessionHelper: function (req, res, profile, options, method) {
+
+        profile.SessionId = profile.SessionId || this.getSessionId(req);
+
+        console.log("SessionId: " + profile.SessionId);
 
         if (!options)
             var options = {};
 
         //Get and verify parameters
-        options.Certificate = options.Certificate || './client.pfx';
+        options.Certificate = options.Certificate || './client.pem';
         options.CertificateKey = options.CertificateKey || './client_key.pem';
         options.PassPhrase = options.PassPhrase || '';
-        options.ProxyRestUri = options.ProxyRestUri || url.parse(req.url, true).query.proxyRestUri;
-        options.TargetId = options.TargetId || url.parse(req.url, true).query.targetId;
+        options.ProxyRestUri = options.ProxyRestUri || 'http://localhost:4243/qps';
 
-        if (global.qlikAuthSession) {
-            options.ProxyRestUri = global.qlikAuthSession.proxyRestUri;
-            options.TargetId = global.qlikAuthSession.targetId;
-        }
-
-        if (!options.ProxyRestUri || !options.TargetId || !profile.UserId) {
-            res.end('Missing parameters');
+        if (!options.ProxyRestUri || !profile.UserId) {
+            console.log('Missing parameters');
             return;
         }
 
         //Configure parameters for the session request
         var xrfkey = this.generateXrfkey();
+
+        if (method == "POST")
+           var endpoint = 'session?xrfkey=' + xrfkey;
+        else
+           var endpoint = 'session/' + profile.SessionId + '?xrfkey=' + xrfkey;
+
         var settings = {
             host: url.parse(options.ProxyRestUri).hostname,
             port: url.parse(options.ProxyRestUri).port,
-            path: url.parse(options.ProxyRestUri).path + '/session?xrfkey=' + xrfkey,
+            path: path.join(url.parse(options.ProxyRestUri).path, endpoint),
             method: method,
             headers: {'X-Qlik-Xrfkey': xrfkey, 'Content-Type': 'application/json'},
             passphrase: options.PassPhrase,
@@ -199,23 +209,12 @@ module.exports = {
         settings = _.extend(settings, cert);
 
         //Send session request
-        var ticketreq = https.request(settings, function (ticketres) {
-            ticketres.on('data', function (d) {
-                //Parse session response
-                var ticket = JSON.parse(d.toString());
-
-                // //Build redirect including ticket
-                // if (ticket.TargetUri.indexOf("?") > 0) {
-                //     redirectURI = ticket.TargetUri + '&QlikTicket=' + ticket.Ticket;
-                // } else {
-                //     redirectURI = ticket.TargetUri + '?QlikTicket=' + ticket.Ticket;
-                // }
-
-                // res.writeHead(302, {'Location': redirectURI});
-                // res.end();
+        var sessionreq = https.request(settings, function (sessionres) {
+            sessionres.on('data', function (d) {
+                console.log(JSON.parse(d.toString()));
+                res.write(d);
+                res.end();
             });
-            console.log(ticketreq);
-            console.log(settings);
         });
 
         //Send JSON request for ticket
@@ -223,13 +222,13 @@ module.exports = {
             'UserDirectory': profile.UserDirectory,
             'UserId': profile.UserId,
             'Attributes': profile.Attributes || [],
-            'TargetId': options.TargetId.toString()
+            'SessionId': profile.SessionId
         });
-        ticketreq.write(jsonrequest);
-        ticketreq.end();
+        sessionreq.write(jsonrequest);
+        sessionreq.end();
 
-        ticketreq.on('error', function (e) {
-            console.error('Error' + e);
+        sessionreq.on('error', function (e) {
+            console.log('Error' + e);
         });
     },
 
@@ -307,7 +306,7 @@ module.exports = {
         ticketreq.end();
 
         ticketreq.on('error', function (e) {
-            console.error('Error' + e);
+            console.log('Error' + e);
         });
     }
 };

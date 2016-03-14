@@ -6,9 +6,9 @@
   "author": "Rikard Braathen",
   "license": "MIT",
   "dependencies": {
-    "underscore": "^1.8.0"
+    "underscore": "^1.8.3"
   },
-  "engine": "node >= 0.10.0",
+  "engine": "node >= 0.4.0",
   "keywords": [
     "qlik",
     "qlikview",
