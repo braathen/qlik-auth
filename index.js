@@ -78,8 +78,8 @@ module.exports = {
             var options = {};
 
         //Get and verify parameters
-        options.Certificate = options.Certificate || './client.pem';
-        options.CertificateKey = options.CertificateKey || './client_key.pem';
+        options.Certificate = options.Certificate || 'client.pem';
+        options.CertificateKey = options.CertificateKey || 'client_key.pem';
         options.PassPhrase = options.PassPhrase || '';
         options.ProxyRestUri = options.ProxyRestUri || url.parse(req.url, true).query.proxyRestUri;
         options.TargetId = options.TargetId || url.parse(req.url, true).query.targetId;
@@ -99,7 +99,7 @@ module.exports = {
         var settings = {
             host: url.parse(options.ProxyRestUri).hostname,
             port: url.parse(options.ProxyRestUri).port,
-            path: path.join(url.parse(options.ProxyRestUri).path, 'ticket?xrfkey=' + xrfkey),
+            path: path.resolve(url.parse(options.ProxyRestUri).path, 'ticket?xrfkey=' + xrfkey),
             method: 'POST',
             headers: {'X-Qlik-Xrfkey': xrfkey, 'Content-Type': 'application/json'},
             passphrase: options.PassPhrase,
