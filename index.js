@@ -202,7 +202,7 @@ module.exports = {
         var settings = {
             host: url.parse(options.ProxyRestUri).hostname,
             port: url.parse(options.ProxyRestUri).port,
-            path: path.join(url.parse(options.ProxyRestUri).path, endpoint),
+            path: path.resolve(url.parse(options.ProxyRestUri).path, endpoint),
             method: method,
             headers: {'X-Qlik-Xrfkey': xrfkey, 'Content-Type': 'application/json'},
             passphrase: options.PassPhrase,
