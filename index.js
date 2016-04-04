@@ -109,6 +109,12 @@ module.exports = {
 
         //Locate certificate
         var cert = getCertificates(options.Certificate, options.CertificateKey);
+        if (cert.cert === undefined || cert.key === undefined) {
+            if (cert.pfx === undefined) {
+                res.end('Client certificate or key was not found');
+                return;
+            }
+        }
         settings = _.extend(settings, cert);
 
         //Send ticket request
@@ -206,6 +212,12 @@ module.exports = {
 
         //Locate certificate
         var cert = getCertificates(options.Certificate, options.CertificateKey);
+        if (cert.cert === undefined || cert.key === undefined) {
+            if (cert.pfx === undefined) {
+                console.log('Client certificate or key was not found');
+                return;
+            }
+        }
         settings = _.extend(settings, cert);
 
         //Send session request
