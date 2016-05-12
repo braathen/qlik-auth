@@ -1,10 +1,10 @@
 var url = require('url');
-var path = require('path');
 var fs = require('fs');
 var http = require('http');
 var https = require('https');
 var crypto = require('crypto');
 var util = require('util');
+var urljoin = require('url-join');
 var _ = require("underscore");
 
 function getFileRealPath(s) {
@@ -99,7 +99,7 @@ module.exports = {
         var settings = {
             host: url.parse(options.ProxyRestUri).hostname,
             port: url.parse(options.ProxyRestUri).port,
-            path: path.resolve(url.parse(options.ProxyRestUri).path, 'ticket?xrfkey=' + xrfkey),
+            path: urljoin(url.parse(options.ProxyRestUri).path, 'ticket?xrfkey=' + xrfkey),
             method: 'POST',
             headers: {'X-Qlik-Xrfkey': xrfkey, 'Content-Type': 'application/json'},
             passphrase: options.PassPhrase,
@@ -202,7 +202,7 @@ module.exports = {
         var settings = {
             host: url.parse(options.ProxyRestUri).hostname,
             port: url.parse(options.ProxyRestUri).port,
-            path: path.resolve(url.parse(options.ProxyRestUri).path, endpoint),
+            path: urljoin(url.parse(options.ProxyRestUri).path, endpoint),
             method: method,
             headers: {'X-Qlik-Xrfkey': xrfkey, 'Content-Type': 'application/json'},
             passphrase: options.PassPhrase,

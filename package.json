@@ -1,12 +1,13 @@
 {
   "name": "qlik-auth",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "A module for simplyfing custom authentication with the Qlik Sense and QlikView products",
   "main": "index.js",
   "author": "Rikard Braathen",
   "license": "MIT",
   "dependencies": {
-    "underscore": "^1.8.3"
+    "underscore": "^1.8.3",
+    "url-join": "^1.1.0"
   },
   "engine": "node >= 0.4.0",
   "keywords": [
@@ -25,5 +26,8 @@
   "homepage": "https://github.com/braathen/qlik-auth",
   "bugs": {
     "url": "https://github.com/braathen/qlik-auth/issues"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
   }
 }
