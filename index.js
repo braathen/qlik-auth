@@ -41,7 +41,7 @@ function getCertificates(cert, certKey) {
                 for (var obj in files) {
                     _certKey = getFileRealPath(files[obj]);
 
-                    if (certKey != null) {
+                    if (_certKey != null) {
                         certificate.cert = fs.readFileSync(_cert);
                         certificate.key = fs.readFileSync(_certKey);
                         break;
