@@ -121,7 +121,12 @@ module.exports = {
         var ticketreq = https.request(settings, function (ticketres) {
             ticketres.on('data', function (d) {
                 //Parse ticket response
-                var ticket = JSON.parse(d.toString());
+                try {
+                    var ticket = JSON.parse(d.toString());
+                } catch(e) {
+                    res.end('Invalid request JSON');
+                    return;
+                }
 
                 //Build redirect including ticket
                 if (ticket.TargetUri.indexOf("?") > 0) {
