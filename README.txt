@@ -83,6 +83,17 @@ ADVANCED USAGE
        'PassPhrase': ''
      }
 
+ - You can also include the certificate contents directly in the options like
+   this:
+
+     var options = {
+       'CertificateContents': '-----BEGIN CERTIFICATE-----\r\nABCD...'
+       'CertificateKeyContents': '-----BEGIN RSA PRIVATE KEY-----\r\nABCD...'
+     }
+
+   If you do this, no files will be checked for certificates and the
+   Certificate and/or CertificateKey options will be ignored.
+
  - When Qlik Sense is redirecting to a custom authentication module it passes
    proxyRestUri and targetId as parameters. These are normally handled by the
    function automatically, but for scenarios where it might be necessary to
