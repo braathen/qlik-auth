@@ -15,41 +15,51 @@ function getFileRealPath(s) {
     }
 }
 
-function getCertificates(cert, certKey) {
+function getCertificates(options) {
     var certificate = {};
+    if (options.CertificateContents) {
+        certificate.cert = options.CertificateContents;
+    }
+    if (options.CertificateKeyContents) {
+        certificate.key = options.CertificateKeyContents;
+    }
     var _cert = null;
     var _certKey = null;
 
-    var files = ["client.pem", "client.pfx", "C:\\ProgramData\\Qlik\\Sense\\Repository\\Exported Certificates\\.Local Certificates\\client.pem"];
-    files.unshift(cert);
-    files = _.uniq(files);
+    if (!certificate.cert) {
+        var files = ["client.pem", "client.pfx", "C:\\ProgramData\\Qlik\\Sense\\Repository\\Exported Certificates\\.Local Certificates\\client.pem"];
+        files.unshift(options.Certificate);
+        files = _.uniq(files);
 
-    for (var obj in files) {
-        _cert = getFileRealPath(files[obj]);
-        if (_cert != null)
-            break;
+        for (var obj in files) {
+            _cert = getFileRealPath(files[obj]);
+            if (_cert != null)
+                break;
+        }
     }
 
-    if (_cert != null) {
+    if (certificate.cert || _cert != null) {
         try {
-            if (_cert.toLowerCase().indexOf(".pem") > 0) {
-                // .pem
-                var files = ["client_key.pem", "C:\\ProgramData\\Qlik\\Sense\\Repository\\Exported Certificates\\.Local Certificates\\client_key.pem"];
-                files.unshift(certKey);
-                files = _.uniq(files);
+            if (!certificate.key) {
+                if (_cert.toLowerCase().indexOf(".pem") > 0) {
+                    // .pem
+                    var files = ["client_key.pem", "C:\\ProgramData\\Qlik\\Sense\\Repository\\Exported Certificates\\.Local Certificates\\client_key.pem"];
+                    files.unshift(options.CertificateKey);
+                    files = _.uniq(files);
 
-                for (var obj in files) {
-                    _certKey = getFileRealPath(files[obj]);
+                    for (var obj in files) {
+                        _certKey = getFileRealPath(files[obj]);
 
-                    if (_certKey != null) {
-                        certificate.cert = fs.readFileSync(_cert);
-                        certificate.key = fs.readFileSync(_certKey);
-                        break;
+                        if (_certKey != null) {
+                            certificate.cert = fs.readFileSync(_cert);
+                            certificate.key = fs.readFileSync(_certKey);
+                            break;
+                        }
                     }
+                } else {
+                    // .pfx
+                    certificate.pfx = fs.readFileSync(_cert);
                 }
-            } else {
-                // .pfx
-                certificate.pfx = fs.readFileSync(_cert);
             }
         } catch (e) {
             // nothing to see here...
@@ -108,7 +118,7 @@ module.exports = {
         };
 
         //Locate certificate
-        var cert = getCertificates(options.Certificate, options.CertificateKey);
+        var cert = getCertificates(options);
         if (cert.cert === undefined || cert.key === undefined) {
             if (cert.pfx === undefined) {
                 res.end('Client certificate or key was not found');
@@ -216,7 +226,7 @@ module.exports = {
         };
 
         //Locate certificate
-        var cert = getCertificates(options.Certificate, options.CertificateKey);
+        var cert = getCertificates(options);
         if (cert.cert === undefined || cert.key === undefined) {
             if (cert.pfx === undefined) {
                 console.log('Client certificate or key was not found');
